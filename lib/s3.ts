@@ -2,16 +2,16 @@ import AWS from "aws-sdk"
 
 // Configure AWS SDK
 AWS.config.update({
-  accessKeyId: process.env.AWS_ACCESS_KEY_ID,
-  secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
-  region: process.env.AWS_REGION,
+  accessKeyId: process.env.NEXT_PUBLIC_AWS_ACCESS_KEY_ID,
+  secretAccessKey: process.env.NEXT_PUBLIC_AWS_SECRET_ACCESS_KEY,
+  region: process.env.NEXT_PUBLIC_AWS_REGION,
 })
 
 // Create S3 instance with specific configuration for MinIO
 export const s3 = new AWS.S3({
-  endpoint: process.env.AWS_S3_ENDPOINT,
-  accessKeyId: process.env.AWS_ACCESS_KEY_ID,
-  secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
+  endpoint: process.env.NEXT_PUBLIC_AWS_S3_ENDPOINT,
+  accessKeyId: process.env.NEXT_PUBLIC_AWS_ACCESS_KEY_ID,
+  secretAccessKey: process.env.NEXT_PUBLIC_AWS_SECRET_ACCESS_KEY,
   s3ForcePathStyle: true,
   signatureVersion: "v4",
   sslEnabled: true, // Enable SSL
@@ -21,7 +21,7 @@ export const s3 = new AWS.S3({
   },
 })
 
-export const BUCKET_NAME = process.env.AWS_BUCKET_NAME || "trrag"
+export const BUCKET_NAME = process.env.NEXT_PUBLIC_AWS_BUCKET_NAME || "trrag"
 
 // Helper function to ensure bucket exists
 export async function ensureBucket() {
