@@ -1,0 +1,10 @@
+@media print {
+  .print\:hidden {
+    display: none !important;
+  }
+
+  .prose {
+    max-width: none !important;
+  }
+}
+
