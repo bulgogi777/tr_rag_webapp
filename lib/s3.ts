@@ -2,31 +2,26 @@ import AWS from "aws-sdk"
 
 // Configure AWS SDK
 AWS.config.update({
-  accessKeyId: "2W2GLYQAFxyt1uK4Pqje",
-  secretAccessKey: "C20W62WyHQ9Y5O63wCGlwVIPntRgjRPbZglgzDMo",
-  region: "us-east-1",
+  accessKeyId: process.env.AWS_ACCESS_KEY_ID,
+  secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
+  region: process.env.AWS_REGION,
 })
 
 // Create S3 instance with specific configuration for MinIO
 export const s3 = new AWS.S3({
-  endpoint: "https://bucket-production-7db7.up.railway.app", // Changed to https without port
-  accessKeyId: "2W2GLYQAFxyt1uK4Pqje",
-  secretAccessKey: "C20W62WyHQ9Y5O63wCGlwVIPntRgjRPbZglgzDMo",
+  endpoint: process.env.AWS_S3_ENDPOINT,
+  accessKeyId: process.env.AWS_ACCESS_KEY_ID,
+  secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
   s3ForcePathStyle: true,
   signatureVersion: "v4",
   sslEnabled: true, // Enable SSL
   httpOptions: {
     timeout: 30000,
-    connectTimeout: 30000,
-    headers: {
-      "Access-Control-Allow-Origin": "*",
-      "Access-Control-Allow-Methods": "GET,PUT,POST,DELETE,HEAD",
-      "Access-Control-Allow-Headers": "Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token",
-    },
+    connectTimeout: 30000
   },
 })
 
-export const BUCKET_NAME = "trrag"
+export const BUCKET_NAME = process.env.AWS_BUCKET_NAME || "trrag"
 
 // Helper function to ensure bucket exists
 export async function ensureBucket() {
@@ -124,4 +119,3 @@ export function getSignedUrl(key: string) {
     throw error
   }
 }
-
