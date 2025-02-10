@@ -4,7 +4,9 @@ import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
 import { ArrowLeft, Printer } from "lucide-react"
 import { Button } from "@/components/ui/button"
-import { s3, BUCKET_NAME } from "@/lib/s3"
+import { Card, CardContent } from "@/components/ui/card"
+import { Alert, AlertDescription } from "@/components/ui/alert"
+import { Skeleton } from "@/components/ui/skeleton"
 import ReactMarkdown from "react-markdown"
 
 export default function MarkdownViewer({ params }: { params: { filename: string } }) {
@@ -14,33 +16,24 @@ export default function MarkdownViewer({ params }: { params: { filename: string 
   const router = useRouter()
 
   useEffect(() => {
-    const fetchMarkdown = async () => {
-      let key = ""
+    const fetchSummary = async () => {
       try {
-        // Generate the S3 key
-        key = `summaries/${decodeURIComponent(params.filename)}.md`
-
-        // Fetch the markdown content
-        const result = await s3
-          .getObject({
-            Bucket: BUCKET_NAME,
-            Key: key,
-          })
-          .promise()
-
-        // Set the content if found
-        if (result.Body) {
-          setContent(result.Body.toString("utf-8"))
+        const response = await fetch(`/api/s3/get-summary?filename=${encodeURIComponent(params.filename)}`)
+        if (!response.ok) {
+          const data = await response.json()
+          throw new Error(data.error || 'Failed to fetch summary')
         }
-      } catch (error) {
-        console.error(`Error fetching markdown for key ${key}:`, error)
-        setError(`Failed to load summary for ${key}. Please try again.`)
+        const data = await response.json()
+        setContent(data.content)
+      } catch (error: any) {
+        console.error('Error fetching summary:', error)
+        setError(error.message || 'Failed to load summary. Please try again.')
       } finally {
         setLoading(false)
       }
     }
 
-    fetchMarkdown()
+    fetchSummary()
   }, [params.filename]) // Dependency ensures effect runs if filename changes
 
   const handlePrint = () => {
@@ -48,22 +41,45 @@ export default function MarkdownViewer({ params }: { params: { filename: string 
   }
 
   if (loading) {
-    return <div className="flex items-center justify-center min-h-screen">Loading...</div>
+    return (
+      <div className="min-h-screen bg-background">
+        <div className="max-w-4xl mx-auto p-8">
+          <div className="flex justify-between items-center mb-8">
+            <Skeleton className="h-10 w-40" />
+            <Skeleton className="h-10 w-24" />
+          </div>
+          <Card>
+            <CardContent className="p-6">
+              <div className="space-y-4">
+                <Skeleton className="h-6 w-3/4" />
+                <Skeleton className="h-4 w-full" />
+                <Skeleton className="h-4 w-5/6" />
+                <Skeleton className="h-4 w-4/5" />
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+    )
   }
 
   if (error) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-screen">
-        <p className="text-red-500">{error}</p>
-        <Button onClick={() => router.push("/dashboard")} className="mt-4">
-          Return to Dashboard
-        </Button>
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <Alert variant="destructive" className="max-w-md">
+          <AlertDescription className="flex flex-col items-center gap-4">
+            <p>{error}</p>
+            <Button onClick={() => router.push("/dashboard")}>
+              Return to Dashboard
+            </Button>
+          </AlertDescription>
+        </Alert>
       </div>
     )
   }
 
   return (
-    <div className="min-h-screen bg-white">
+    <div className="min-h-screen bg-background">
       <div className="max-w-4xl mx-auto p-8">
         <div className="flex justify-between items-center mb-8 print:hidden">
           <Button variant="ghost" onClick={() => router.push("/dashboard")} className="flex items-center gap-2">
@@ -75,11 +91,14 @@ export default function MarkdownViewer({ params }: { params: { filename: string 
             Print
           </Button>
         </div>
-        <div className="prose max-w-none">
-          <ReactMarkdown>{content}</ReactMarkdown>
-        </div>
+        <Card>
+          <CardContent className="p-6">
+            <article className="prose prose-slate dark:prose-invert max-w-none">
+              <ReactMarkdown>{content}</ReactMarkdown>
+            </article>
+          </CardContent>
+        </Card>
       </div>
     </div>
   )
 }
-
