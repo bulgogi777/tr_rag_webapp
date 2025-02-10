@@ -3,10 +3,21 @@ import { s3, BUCKET_NAME, listObjects } from "@/lib/s3"
 
 export async function GET() {
   try {
-    const uploadsList = await listObjects("uploads/")
-    const summariesList = await listObjects("summaries/")
+    console.log("S3 Config:", {
+      endpoint: process.env.MINIO_ENDPOINT,
+      region: process.env.MINIO_REGION,
+      bucket: BUCKET_NAME,
+      hasAccessKey: !!process.env.MINIO_ACCESS_KEY,
+      hasSecretKey: !!process.env.MINIO_SECRET_KEY
+    })
 
-    console.log("Summaries list:", JSON.stringify(summariesList, null, 2))
+    console.log("Fetching uploads list...")
+    const uploadsList = await listObjects("uploads/")
+    console.log("Raw uploads list:", JSON.stringify(uploadsList, null, 2))
+
+    console.log("Fetching summaries list...")
+    const summariesList = await listObjects("summaries/")
+    console.log("Raw summaries list:", JSON.stringify(summariesList, null, 2))
     
     const summaryFiles = new Set(
       (summariesList.Contents || [])

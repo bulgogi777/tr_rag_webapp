@@ -40,6 +40,43 @@ export async function POST(request: Request) {
 
     const uploadUrl = s3.getSignedUrl("putObject", params)
     
+    // Log the upload attempt
+    console.log("[S3] Generated upload URL:", {
+      bucket: BUCKET_NAME,
+      key,
+      contentType: params.ContentType,
+      expires: params.Expires,
+      endpoint: s3.config.endpoint
+    })
+
+    // Add a HEAD request check after a short delay to verify upload
+    const verifyUpload = async () => {
+      try {
+        // Wait 5 seconds to allow for upload completion
+        await new Promise(resolve => setTimeout(resolve, 5000))
+        
+        const headParams = {
+          Bucket: BUCKET_NAME,
+          Key: key
+        }
+        
+        await s3.headObject(headParams).promise()
+        console.log("[S3] Upload verified successfully:", key)
+        return true
+      } catch (error: any) {
+        console.error("[S3] Upload verification failed:", {
+          key,
+          error: error.message,
+          code: error.code,
+          statusCode: error.statusCode
+        })
+        return false
+      }
+    }
+
+    // Start verification in background but don't wait for it
+    verifyUpload()
+    
     return NextResponse.json({ 
       uploadUrl,
       key

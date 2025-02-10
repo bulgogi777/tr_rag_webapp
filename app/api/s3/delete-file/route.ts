@@ -9,26 +9,71 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "PDF path is required" }, { status: 400 })
     }
 
-    // Delete the PDF
-    await s3
-      .deleteObject({
+    console.log("[S3] Deleting files:", {
+      pdf: pdfPath,
+      hasSummary
+    })
+
+    // First verify the PDF exists
+    try {
+      await s3.headObject({
         Bucket: BUCKET_NAME,
         Key: pdfPath,
-      })
-      .promise()
+      }).promise()
+    } catch (error: any) {
+      console.error("[S3] PDF not found:", error)
+      return NextResponse.json(
+        { error: "PDF file not found" },
+        { status: 404 }
+      )
+    }
+
+    // Delete the PDF
+    try {
+      await s3
+        .deleteObject({
+          Bucket: BUCKET_NAME,
+          Key: pdfPath,
+        })
+        .promise()
+      console.log("[S3] Successfully deleted PDF:", pdfPath)
+    } catch (error: any) {
+      console.error("[S3] Failed to delete PDF:", error)
+      throw error
+    }
 
     // If there's a summary, delete it too
     if (hasSummary) {
       const summaryKey = `summaries/${pdfPath.replace("uploads/", "").replace(".pdf", ".md")}`
-      await s3
-        .deleteObject({
-          Bucket: BUCKET_NAME,
-          Key: summaryKey,
-        })
-        .promise()
+      try {
+        await s3
+          .deleteObject({
+            Bucket: BUCKET_NAME,
+            Key: summaryKey,
+          })
+          .promise()
+        console.log("[S3] Successfully deleted summary:", summaryKey)
+      } catch (error: any) {
+        console.error("[S3] Failed to delete summary:", error)
+        // Don't throw here, as the PDF was already deleted
+      }
     }
 
-    return NextResponse.json({ success: true })
+    // Verify PDF was actually deleted
+    try {
+      await s3.headObject({
+        Bucket: BUCKET_NAME,
+        Key: pdfPath,
+      }).promise()
+      // If we get here, the file still exists
+      throw new Error("File still exists after deletion")
+    } catch (error: any) {
+      if (error.code === 'NotFound') {
+        // This is what we want - file is gone
+        return NextResponse.json({ success: true })
+      }
+      throw error
+    }
   } catch (error: any) {
     console.error("Error deleting file:", error)
     return NextResponse.json(
