@@ -45,11 +45,18 @@ const PdfList = forwardRef<PdfListRef>((_, ref) => {
         throw new Error("Failed to load PDFs")
       }
 
-      const { pdfs: fetchedPdfs } = await response.json()
+      const responseData = await response.json()
+      console.log("Raw response data:", responseData)
+      
+      const { pdfs: fetchedPdfs } = responseData
+      console.log("Fetched PDFs:", fetchedPdfs)
 
       // Apply filtering and sorting
       const filteredPdfs = filterPdfs(fetchedPdfs, filterType)
+      console.log("Filtered PDFs:", filteredPdfs)
+      
       const sortedPdfs = sortPdfs(filteredPdfs, sortField, sortOrder)
+      console.log("Sorted PDFs:", sortedPdfs)
 
       setPdfs(sortedPdfs)
     } catch (error: any) {
