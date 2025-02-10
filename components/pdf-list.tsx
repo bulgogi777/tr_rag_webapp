@@ -139,6 +139,20 @@ const PdfList = forwardRef<PdfListRef>((_, ref) => {
 
       const responseBody = await response.json()
       console.log("Summary generation response:", responseBody)
+      
+      if (responseBody.Error === "Summary already exists") {
+        console.log("Summary already exists, forcing list refresh")
+        // Clear generating state immediately since we don't need to wait
+        setGeneratingIds((prev) => {
+          const next = new Set(prev)
+          next.delete(pdf.name)
+          return next
+        })
+        // Force immediate refresh to show View Summary button
+        await loadPdfs()
+        return
+      }
+      
       await loadPdfs()
     } catch (error: any) {
       console.error("Error generating summary:", error)
