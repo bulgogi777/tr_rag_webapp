@@ -4,6 +4,9 @@ import { useState, useCallback } from "react"
 import { Upload } from "lucide-react"
 import { cn } from "@/lib/utils"
 import type React from "react"
+import { Card, CardContent } from "@/components/ui/card"
+import { Alert, AlertDescription } from "@/components/ui/alert"
+import { Progress } from "@/components/ui/progress"
 
 // Add a placeholder for the testConnection function.  You'll need to implement this elsewhere.
 const testConnection = async (): Promise<boolean> => {
@@ -118,12 +121,16 @@ export default function PdfUpload({ onUploadComplete }: { onUploadComplete: () =
   return (
     <div className="space-y-4">
       <h2 className="text-2xl font-bold">Upload PDF</h2>
-      {error && <div className="text-red-500 text-sm mb-4">{error}</div>}
-      <div
+      {error && (
+        <Alert variant="destructive">
+          <AlertDescription>{error}</AlertDescription>
+        </Alert>
+      )}
+      <Card
         className={cn(
-          "relative rounded-lg border-2 border-dashed p-8 transition-colors",
-          dragActive ? "border-primary bg-primary/5" : "border-gray-300",
-          uploading && "opacity-50 cursor-not-allowed",
+          "relative border-2 border-dashed transition-colors",
+          dragActive ? "border-primary bg-primary/5" : "border-muted",
+          uploading && "opacity-50 cursor-not-allowed"
         )}
         onDragEnter={handleDrag}
         onDragLeave={handleDrag}
@@ -138,16 +145,23 @@ export default function PdfUpload({ onUploadComplete }: { onUploadComplete: () =
           disabled={uploading}
           className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
         />
-        <div className="flex flex-col items-center justify-center space-y-4 text-center">
-          <Upload className="h-12 w-12 text-gray-400" />
-          <div>
-            <p className="text-lg font-medium">
-              {uploading ? "Uploading..." : "Drop PDF files here or click to select"}
-            </p>
-            <p className="text-sm text-gray-500">Support for multiple files</p>
+        <CardContent className="p-8">
+          <div className="flex flex-col items-center justify-center space-y-4 text-center">
+            <Upload className="h-12 w-12 text-muted-foreground" />
+            <div>
+              <p className="text-lg font-medium">
+                {uploading ? "Uploading..." : "Drop PDF files here or click to select"}
+              </p>
+              <p className="text-sm text-muted-foreground">Support for multiple files</p>
+            </div>
+            {uploading && (
+              <div className="w-full max-w-xs">
+                <Progress value={100} className="h-1" />
+              </div>
+            )}
           </div>
-        </div>
-      </div>
+        </CardContent>
+      </Card>
     </div>
   )
 }
