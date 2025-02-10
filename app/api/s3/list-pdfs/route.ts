@@ -6,11 +6,19 @@ export async function GET() {
     const uploadsList = await listObjects("uploads/")
     const summariesList = await listObjects("summaries/")
 
+    console.log("Summaries list:", JSON.stringify(summariesList, null, 2))
+    
     const summaryFiles = new Set(
       (summariesList.Contents || [])
-        .map((item) => item.Key?.replace("summaries/", "").replace(".md", ""))
+        .map((item) => {
+          console.log("Processing summary item:", item.Key)
+          // Don't modify the name when creating the Set to match exactly with the PDF name
+          return item.Key?.replace("summaries/", "").replace(".md", "")
+        })
         .filter(Boolean)
     )
+    
+    console.log("Summary files set:", Array.from(summaryFiles))
 
     const pdfs = await Promise.all(
       (uploadsList.Contents || [])
@@ -28,9 +36,17 @@ export async function GET() {
           }
 
           const downloadUrl = s3.getSignedUrl("getObject", downloadParams)
-          const name = fileName.replace(".pdf", "")
+          // Keep the exact name for summary check, just remove .pdf extension
+          const nameForSummary = fileName.replace(".pdf", "")
+          
+          console.log("PDF processing:", {
+            originalFileName: fileName,
+            nameForSummaryCheck: nameForSummary,
+            summaryFiles: Array.from(summaryFiles),
+            hasSummary: summaryFiles.has(nameForSummary)
+          })
 
-          return {
+          const result = {
             name: fileName,
             uploadDate: item.LastModified
               ? new Date(item.LastModified).toLocaleString("en-US", {
@@ -39,9 +55,15 @@ export async function GET() {
                 })
               : "Unknown",
             downloadUrl,
-            hasSummary: summaryFiles.has(name),
+            hasSummary: summaryFiles.has(nameForSummary),
             fullPath: item.Key,
           }
+
+          // Ensure proper JSON formatting
+          console.log("PDF object stringified:", JSON.stringify(result, null, 2))
+          
+          console.log("Final PDF object:", result)
+          return result
         })
     )
 
