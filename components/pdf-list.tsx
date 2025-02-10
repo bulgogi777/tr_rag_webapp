@@ -5,7 +5,6 @@ import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Loader2, Trash2, Eye, ChevronUp, ChevronDown } from "lucide-react"
-import { s3, BUCKET_NAME, ensureBucket, testConnection, listObjects } from "@/lib/s3"
 
 interface PdfFile {
   name: string
@@ -38,66 +37,18 @@ const PdfList = forwardRef<PdfListRef>((_, ref) => {
     setLoading(true)
     setError(null)
     try {
-      const isConnected = await testConnection(3)
-      if (!isConnected) {
-        throw new Error("Unable to connect to storage server after multiple attempts. Please try again later.")
+      const response = await fetch("/api/s3/list-pdfs")
+      if (!response.ok) {
+        throw new Error("Failed to load PDFs")
       }
 
-      await ensureBucket()
-      const uploadsList = await listObjects("uploads/")
-      const summariesList = await listObjects("summaries/")
+      const { pdfs: fetchedPdfs } = await response.json()
 
-      const summaryFiles = new Set(
-        (summariesList.Contents || [])
-          .map((item) => item.Key?.replace("summaries/", "").replace(".md", ""))
-          .filter(Boolean),
-      )
+      // Apply filtering and sorting
+      const filteredPdfs = filterPdfs(fetchedPdfs, filterType)
+      const sortedPdfs = sortPdfs(filteredPdfs, sortField, sortOrder)
 
-      const pdfPromises = (uploadsList.Contents || [])
-        .filter((item) => item.Key && item.Key.endsWith(".pdf"))
-        .map(async (item) => {
-          if (!item.Key) return null
-
-          const fileName = item.Key.replace("uploads/", "")
-          if (!fileName) return null
-
-          try {
-            const downloadParams = {
-              Bucket: BUCKET_NAME,
-              Key: item.Key,
-              Expires: 3600,
-            }
-
-            const downloadUrl = s3.getSignedUrl("getObject", downloadParams)
-            const name = fileName.replace(".pdf", "")
-
-            return {
-              name: fileName,
-              uploadDate: item.LastModified
-                ? new Date(item.LastModified).toLocaleString("en-US", {
-                    dateStyle: "medium",
-                    timeStyle: "short",
-                  })
-                : "Unknown",
-              downloadUrl,
-              hasSummary: summaryFiles.has(name),
-              fullPath: item.Key,
-            }
-          } catch (err) {
-            console.error(`Error processing file ${fileName}:`, err)
-            return null
-          }
-        })
-
-      let pdfList = (await Promise.all(pdfPromises)).filter((item): item is PdfFile => item !== null)
-
-      // Apply filtering
-      pdfList = filterPdfs(pdfList, filterType)
-
-      // Apply sorting
-      pdfList = sortPdfs(pdfList, sortField, sortOrder)
-
-      setPdfs(pdfList)
+      setPdfs(sortedPdfs)
     } catch (error: any) {
       console.error("Error loading PDFs:", error)
       setError(error.message || "Failed to load PDFs. Please check your connection and try again.")
@@ -197,23 +148,19 @@ const PdfList = forwardRef<PdfListRef>((_, ref) => {
     }
 
     try {
-      // Delete the PDF
-      await s3
-        .deleteObject({
-          Bucket: BUCKET_NAME,
-          Key: pdf.fullPath,
-        })
-        .promise()
+      const response = await fetch("/api/s3/delete-file", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          pdfPath: pdf.fullPath,
+          hasSummary: pdf.hasSummary,
+        }),
+      })
 
-      // If there's a summary, delete it too
-      if (pdf.hasSummary) {
-        const summaryKey = `summaries/${pdf.name.replace(".pdf", ".md")}`
-        await s3
-          .deleteObject({
-            Bucket: BUCKET_NAME,
-            Key: summaryKey,
-          })
-          .promise()
+      if (!response.ok) {
+        throw new Error("Failed to delete file")
       }
 
       await loadPdfs()
@@ -336,4 +283,3 @@ const PdfList = forwardRef<PdfListRef>((_, ref) => {
 PdfList.displayName = "PdfList"
 
 export default PdfList
-

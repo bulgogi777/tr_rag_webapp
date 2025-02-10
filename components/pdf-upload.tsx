@@ -3,7 +3,6 @@
 import { useState, useCallback } from "react"
 import { Upload } from "lucide-react"
 import { cn } from "@/lib/utils"
-import { s3, BUCKET_NAME } from "@/lib/s3"
 import type React from "react"
 
 // Add a placeholder for the testConnection function.  You'll need to implement this elsewhere.
@@ -37,20 +36,39 @@ export default function PdfUpload({ onUploadComplete }: { onUploadComplete: () =
 
         const uploadPromises = pdfFiles.map(async (file) => {
           console.log(`Uploading file: ${file.name}`)
-          const params = {
-            Bucket: BUCKET_NAME,
-            Key: `uploads/${file.name}`,
-            Body: file,
-            ContentType: "application/pdf",
-            ACL: "private",
-          }
-
           try {
-            const result = await s3.upload(params).promise()
-            console.log(`Successfully uploaded ${file.name}:`, result)
+            // Get pre-signed URL for upload
+            const urlResponse = await fetch("/api/s3/upload-url", {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify({ filename: file.name }),
+            });
+
+            if (!urlResponse.ok) {
+              throw new Error("Failed to get upload URL");
+            }
+
+            const { uploadUrl } = await urlResponse.json();
+
+            // Upload file using pre-signed URL
+            const uploadResponse = await fetch(uploadUrl, {
+              method: "PUT",
+              body: file,
+              headers: {
+                "Content-Type": "application/pdf",
+              },
+            });
+
+            if (!uploadResponse.ok) {
+              throw new Error("Failed to upload file");
+            }
+
+            console.log(`Successfully uploaded ${file.name}`);
           } catch (err) {
-            console.error(`Error uploading ${file.name}:`, err)
-            throw err
+            console.error(`Error uploading ${file.name}:`, err);
+            throw err;
           }
         })
 
@@ -133,4 +151,3 @@ export default function PdfUpload({ onUploadComplete }: { onUploadComplete: () =
     </div>
   )
 }
-
