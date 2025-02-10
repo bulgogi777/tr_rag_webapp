@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server"
+import { revalidatePath } from "next/cache"
 import { s3, BUCKET_NAME, listObjects } from "@/lib/s3"
 
 export async function GET() {
@@ -63,6 +64,7 @@ export async function GET() {
               ? new Date(item.LastModified).toLocaleString("en-US", {
                   dateStyle: "medium",
                   timeStyle: "short",
+                  timeZone: "America/Chicago"
                 })
               : "Unknown",
             downloadUrl,
@@ -80,6 +82,9 @@ export async function GET() {
 
     const validPdfs = pdfs.filter((item): item is NonNullable<typeof item> => item !== null)
 
+    // Revalidate the dashboard page
+    revalidatePath('/dashboard')
+    
     const response = NextResponse.json({ pdfs: validPdfs })
     
     // Add cache control headers
