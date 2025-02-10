@@ -80,7 +80,14 @@ export async function GET() {
 
     const validPdfs = pdfs.filter((item): item is NonNullable<typeof item> => item !== null)
 
-    return NextResponse.json({ pdfs: validPdfs })
+    const response = NextResponse.json({ pdfs: validPdfs })
+    
+    // Add cache control headers
+    response.headers.set('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate')
+    response.headers.set('Pragma', 'no-cache')
+    response.headers.set('Expires', '0')
+    
+    return response
   } catch (error: any) {
     console.error("Error listing PDFs:", error)
     return NextResponse.json(

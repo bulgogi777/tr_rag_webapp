@@ -45,17 +45,48 @@ export async function POST(request: Request) {
     // If there's a summary, delete it too
     if (hasSummary) {
       const summaryKey = `summaries/${pdfPath.replace("uploads/", "").replace(".pdf", ".md")}`
+      
+      // First verify the summary exists
       try {
-        await s3
-          .deleteObject({
-            Bucket: BUCKET_NAME,
-            Key: summaryKey,
-          })
-          .promise()
-        console.log("[S3] Successfully deleted summary:", summaryKey)
+        await s3.headObject({
+          Bucket: BUCKET_NAME,
+          Key: summaryKey,
+        }).promise()
+        
+        // Summary exists, delete it
+        try {
+          await s3
+            .deleteObject({
+              Bucket: BUCKET_NAME,
+              Key: summaryKey,
+            })
+            .promise()
+          console.log("[S3] Successfully deleted summary:", summaryKey)
+          
+          // Verify summary was deleted
+          try {
+            await s3.headObject({
+              Bucket: BUCKET_NAME,
+              Key: summaryKey,
+            }).promise()
+            console.error("[S3] Summary file still exists after deletion:", summaryKey)
+          } catch (error: any) {
+            if (error.code === 'NotFound') {
+              console.log("[S3] Verified summary deletion:", summaryKey)
+            } else {
+              console.error("[S3] Error verifying summary deletion:", error)
+            }
+          }
+        } catch (error: any) {
+          console.error("[S3] Failed to delete summary:", error)
+          // Don't throw here, as the PDF was already deleted
+        }
       } catch (error: any) {
-        console.error("[S3] Failed to delete summary:", error)
-        // Don't throw here, as the PDF was already deleted
+        if (error.code === 'NotFound') {
+          console.log("[S3] No summary file found to delete:", summaryKey)
+        } else {
+          console.error("[S3] Error checking summary existence:", error)
+        }
       }
     }
 
