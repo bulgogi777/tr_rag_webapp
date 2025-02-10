@@ -40,7 +40,14 @@ const PdfList = forwardRef<PdfListRef>((_, ref) => {
     setLoading(true)
     setError(null)
     try {
-      const response = await fetch("/api/s3/list-pdfs")
+      // Add cache-busting query parameter and no-cache headers
+      const response = await fetch("/api/s3/list-pdfs?" + new Date().getTime(), {
+        headers: {
+          'Cache-Control': 'no-cache, no-store, must-revalidate',
+          'Pragma': 'no-cache',
+          'Expires': '0'
+        }
+      })
       if (!response.ok) {
         throw new Error("Failed to load PDFs")
       }
