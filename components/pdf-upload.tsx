@@ -50,6 +50,9 @@ export default function PdfUpload({ onUploadComplete }: { onUploadComplete: () =
             });
 
             if (!urlResponse.ok) {
+              if (urlResponse.status === 409) {
+                throw new Error(`File "${file.name}" already exists. Please rename the file or choose a different one.`);
+              }
               throw new Error("Failed to get upload URL");
             }
 

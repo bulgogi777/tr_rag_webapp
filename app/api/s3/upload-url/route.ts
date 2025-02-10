@@ -10,6 +10,26 @@ export async function POST(request: Request) {
     }
 
     const key = `uploads/${filename}`
+
+    // Check if file already exists
+    try {
+      await s3.headObject({
+        Bucket: BUCKET_NAME,
+        Key: key,
+      }).promise()
+
+      // If we get here, the file exists
+      return NextResponse.json(
+        { error: "A file with this name already exists" },
+        { status: 409 }
+      )
+    } catch (error: any) {
+      // If error code is 404, file doesn't exist which is what we want
+      if (error.code !== 'NotFound') {
+        throw error
+      }
+    }
+
     const params = {
       Bucket: BUCKET_NAME,
       Key: key,
