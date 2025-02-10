@@ -113,7 +113,7 @@ const PdfList = forwardRef<PdfListRef>((_, ref) => {
     setGeneratingIds((prev) => new Set(prev).add(pdf.name))
     try {
       const response = await fetch(
-        "https://primary-production-4d0b.up.railway.app/webhook-test/a23f9a53-56d5-44c0-8c44-10cce1e5d066",
+        "https://webhook-processor-production-6889.up.railway.app/webhook/a23f9a53-56d5-44c0-8c44-10cce1e5d066",
         {
           method: "POST",
           headers: {
