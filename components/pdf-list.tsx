@@ -30,12 +30,11 @@ const PdfList = forwardRef<PdfListRef>((_, ref) => {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [generatingIds, setGeneratingIds] = useState<Set<string>>(new Set())
-  const [sortField, setSortField] = useState<SortField>("date") // Updated default sort field
-  const [sortOrder, setSortOrder] = useState<SortOrder>("desc") // Updated default sort order
+  const [sortField, setSortField] = useState<SortField>("date")
+  const [sortOrder, setSortOrder] = useState<SortOrder>("desc")
   const [filterType, setFilterType] = useState<FilterType>("all")
   const router = useRouter()
 
-  // Memoize the loadPdfs function to prevent unnecessary recreations
   const loadPdfs = useCallback(async () => {
     setLoading(true)
     setError(null)
@@ -72,9 +71,8 @@ const PdfList = forwardRef<PdfListRef>((_, ref) => {
     } finally {
       setLoading(false)
     }
-  }, [filterType, sortField, sortOrder]) // Include only the dependencies that should trigger a reload
+  }, [filterType, sortField, sortOrder])
 
-  // Memoize the filter and sort functions
   const filterPdfs = useCallback((pdfs: PdfFile[], filter: FilterType) => {
     switch (filter) {
       case "withSummary":
@@ -98,6 +96,12 @@ const PdfList = forwardRef<PdfListRef>((_, ref) => {
     })
   }, [])
 
+  const refreshData = useCallback(async () => {
+    await loadPdfs()
+    // Force Next.js to revalidate and refresh the entire page
+    router.refresh()
+  }, [loadPdfs, router])
+
   const toggleSort = useCallback(
     (field: SortField) => {
       if (sortField === field) {
@@ -110,17 +114,16 @@ const PdfList = forwardRef<PdfListRef>((_, ref) => {
     [sortField],
   )
 
-  // Load PDFs when sort or filter changes
   useEffect(() => {
     loadPdfs()
-  }, [loadPdfs]) // loadPdfs is memoized with sortField, sortOrder, and filterType dependencies
+  }, [loadPdfs])
 
   useImperativeHandle(
     ref,
     () => ({
-      loadPdfs,
+      loadPdfs: refreshData,
     }),
-    [loadPdfs],
+    [refreshData],
   )
 
   const generateSummary = async (pdf: PdfFile) => {
@@ -149,18 +152,16 @@ const PdfList = forwardRef<PdfListRef>((_, ref) => {
       
       if (responseBody.Error === "Summary already exists") {
         console.log("Summary already exists, forcing list refresh")
-        // Clear generating state immediately since we don't need to wait
         setGeneratingIds((prev) => {
           const next = new Set(prev)
           next.delete(pdf.name)
           return next
         })
-        // Force immediate refresh to show View Summary button
-        await loadPdfs()
+        await refreshData()
         return
       }
       
-      await loadPdfs()
+      await refreshData()
     } catch (error: any) {
       console.error("Error generating summary:", error)
       alert(error.message || "Failed to generate summary. Please try again.")
@@ -202,19 +203,19 @@ const PdfList = forwardRef<PdfListRef>((_, ref) => {
         if (response.status === 404) {
           console.error("[UI] PDF not found:", pdf.name)
           alert("This file no longer exists. The list will be refreshed.")
-          await loadPdfs()
+          await refreshData()
           return
         }
         throw new Error(data.error || "Failed to delete file")
       }
 
       console.log("[UI] Successfully deleted PDF:", pdf.name)
-      await loadPdfs()
+      await refreshData()
     } catch (error: any) {
       console.error("[UI] Error deleting file:", error)
       alert(error.message || "Failed to delete file. Please try again.")
       // Refresh list anyway in case the file was partially deleted
-      await loadPdfs()
+      await refreshData()
     }
   }
 
@@ -250,7 +251,7 @@ const PdfList = forwardRef<PdfListRef>((_, ref) => {
       <Alert variant="destructive" className="my-8">
         <AlertDescription className="flex flex-col items-center gap-4">
           <p>{error}</p>
-          <Button onClick={() => loadPdfs()} variant="outline">
+          <Button onClick={refreshData} variant="outline">
             Retry
           </Button>
         </AlertDescription>
