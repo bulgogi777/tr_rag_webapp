@@ -4,6 +4,9 @@ import { useState, useEffect, forwardRef, useImperativeHandle, useCallback } fro
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Card, CardContent } from "@/components/ui/card"
+import { Alert, AlertDescription } from "@/components/ui/alert"
+import { Skeleton } from "@/components/ui/skeleton"
 import { Loader2, Trash2, Eye, ChevronUp, ChevronDown } from "lucide-react"
 
 interface PdfFile {
@@ -172,20 +175,41 @@ const PdfList = forwardRef<PdfListRef>((_, ref) => {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center p-8">
-        <Loader2 className="h-6 w-6 animate-spin" />
+      <div className="space-y-4">
+        <div className="flex justify-between items-center">
+          <Skeleton className="h-8 w-48" />
+          <Skeleton className="h-10 w-[180px]" />
+        </div>
+        {[1, 2, 3].map((i) => (
+          <Card key={i} className="p-4">
+            <CardContent className="p-0">
+              <div className="flex items-center justify-between">
+                <div className="space-y-2">
+                  <Skeleton className="h-4 w-[250px]" />
+                  <Skeleton className="h-4 w-[100px]" />
+                </div>
+                <div className="flex gap-2">
+                  <Skeleton className="h-10 w-[160px]" />
+                  <Skeleton className="h-10 w-10" />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        ))}
       </div>
     )
   }
 
   if (error) {
     return (
-      <div className="text-center p-8 text-red-500">
-        <p>{error}</p>
-        <Button onClick={() => loadPdfs()} variant="outline" className="mt-4">
-          Retry
-        </Button>
-      </div>
+      <Alert variant="destructive" className="my-8">
+        <AlertDescription className="flex flex-col items-center gap-4">
+          <p>{error}</p>
+          <Button onClick={() => loadPdfs()} variant="outline">
+            Retry
+          </Button>
+        </AlertDescription>
+      </Alert>
     )
   }
 
@@ -226,53 +250,58 @@ const PdfList = forwardRef<PdfListRef>((_, ref) => {
           </button>
         </div>
         {pdfs.length === 0 ? (
-          <div className="text-center p-8 text-gray-500">No PDF documents found. Upload some files to get started.</div>
+          <Alert className="my-8">
+            <AlertDescription className="text-center">
+              No PDF documents found. Upload some files to get started.
+            </AlertDescription>
+          </Alert>
         ) : (
           pdfs.map((pdf) => (
-            <div
-              key={pdf.name}
-              className="flex items-center justify-between p-4 border rounded-lg bg-white shadow-sm hover:shadow transition-shadow"
-            >
-              <div className="grid grid-cols-[60%_40%] gap-4 flex-1 items-center pr-4">
-                <h3 className="font-medium truncate">{pdf.name}</h3>
-                <p className="text-sm text-gray-500 text-center">{pdf.uploadDate}</p>
-              </div>
-              <div className="flex gap-2">
-                {pdf.hasSummary ? (
-                  <Button
-                    variant="outline"
-                    className="w-[160px] active:scale-95 transition-transform"
-                    onClick={() => router.push(`/summaries/${encodeURIComponent(pdf.name.replace(".pdf", ""))}`)}
-                  >
-                    <Eye className="h-4 w-4 mr-2" />
-                    View Summary
-                  </Button>
-                ) : (
-                  <Button
-                    onClick={() => generateSummary(pdf)}
-                    disabled={generatingIds.has(pdf.name)}
-                    className="w-[160px] active:scale-95 transition-transform"
-                  >
-                    {generatingIds.has(pdf.name) ? (
-                      <>
-                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                        Generating...
-                      </>
+            <Card key={pdf.name} className="hover:shadow transition-shadow">
+              <CardContent className="p-4">
+                <div className="flex items-center justify-between">
+                  <div className="grid grid-cols-[60%_40%] gap-4 flex-1 items-center pr-4">
+                    <h3 className="font-medium truncate">{pdf.name}</h3>
+                    <p className="text-sm text-muted-foreground text-center">{pdf.uploadDate}</p>
+                  </div>
+                  <div className="flex gap-2">
+                    {pdf.hasSummary ? (
+                      <Button
+                        variant="outline"
+                        className="w-[160px] active:scale-95 transition-transform"
+                        onClick={() => router.push(`/summaries/${encodeURIComponent(pdf.name.replace(".pdf", ""))}`)}
+                      >
+                        <Eye className="h-4 w-4 mr-2" />
+                        View Summary
+                      </Button>
                     ) : (
-                      "Generate Summary"
+                      <Button
+                        onClick={() => generateSummary(pdf)}
+                        disabled={generatingIds.has(pdf.name)}
+                        className="w-[160px] active:scale-95 transition-transform"
+                      >
+                        {generatingIds.has(pdf.name) ? (
+                          <>
+                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                            Generating...
+                          </>
+                        ) : (
+                          "Generate Summary"
+                        )}
+                      </Button>
                     )}
-                  </Button>
-                )}
-                <Button
-                  variant="destructive"
-                  size="icon"
-                  onClick={() => deletePdf(pdf)}
-                  className="active:scale-95 transition-transform"
-                >
-                  <Trash2 className="h-4 w-4" />
-                </Button>
-              </div>
-            </div>
+                    <Button
+                      variant="destructive"
+                      size="icon"
+                      onClick={() => deletePdf(pdf)}
+                      className="active:scale-95 transition-transform"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
           ))
         )}
       </div>
