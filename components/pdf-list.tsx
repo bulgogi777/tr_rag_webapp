@@ -172,6 +172,12 @@ const PdfList = forwardRef<PdfListRef>((_, ref) => {
     }
 
     try {
+      console.log("[UI] Attempting to delete PDF:", {
+        name: pdf.name,
+        path: pdf.fullPath,
+        hasSummary: pdf.hasSummary
+      })
+
       const response = await fetch("/api/s3/delete-file", {
         method: "POST",
         headers: {
@@ -183,14 +189,25 @@ const PdfList = forwardRef<PdfListRef>((_, ref) => {
         }),
       })
 
+      const data = await response.json()
+
       if (!response.ok) {
-        throw new Error("Failed to delete file")
+        if (response.status === 404) {
+          console.error("[UI] PDF not found:", pdf.name)
+          alert("This file no longer exists. The list will be refreshed.")
+          await loadPdfs()
+          return
+        }
+        throw new Error(data.error || "Failed to delete file")
       }
 
+      console.log("[UI] Successfully deleted PDF:", pdf.name)
       await loadPdfs()
-    } catch (error) {
-      console.error("Error deleting file:", error)
-      alert("Failed to delete file. Please try again.")
+    } catch (error: any) {
+      console.error("[UI] Error deleting file:", error)
+      alert(error.message || "Failed to delete file. Please try again.")
+      // Refresh list anyway in case the file was partially deleted
+      await loadPdfs()
     }
   }
 
