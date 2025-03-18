@@ -1,9 +1,14 @@
 {
-    "rewrites": [
-      {
-        "source": "/n8n/:path*",
-        "destination": "https://primary-production-4d0b.up.railway.app/:path*"
-      }
-    ]
-  }
-  
+  "redirects": [
+    {
+      "source": "/n8n",
+      "destination": "https://primary-production-4d0b.up.railway.app",
+      "permanent": true
+    },
+    {
+      "source": "/n8n/:path*",
+      "destination": "https://primary-production-4d0b.up.railway.app/:path*",
+      "permanent": true
+    }
+  ]
+}
