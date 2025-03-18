@@ -1,0 +1,9 @@
+{
+    "rewrites": [
+      {
+        "source": "/n8n/:path*",
+        "destination": "https://primary-production-4d0b.up.railway.app/:path*"
+      }
+    ]
+  }
+  
