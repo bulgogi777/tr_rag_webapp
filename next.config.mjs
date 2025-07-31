@@ -16,6 +16,9 @@ const nextConfig = {
   images: {
     unoptimized: true,
   },
+  env: {
+    NEXT_PUBLIC_N8N_WEBHOOK_AUTH_KEY: process.env.N8N_WEBHOOK_AUTH_KEY,
+  },
   experimental: {
     webpackBuildWorker: true,
     parallelServerBuildTraces: true,

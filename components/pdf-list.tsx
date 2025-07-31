@@ -129,12 +129,22 @@ const PdfList = forwardRef<PdfListRef>((_, ref) => {
   const generateSummary = async (pdf: PdfFile) => {
     setGeneratingIds((prev) => new Set(prev).add(pdf.name))
     try {
+      const N8N_SUMMARY_WEBHOOK_URL = "https://webhook-processor-production-6889.up.railway.app/webhook/a23f9a53-56d5-44c0-8c44-10cce1e5d066";
+      const N8N_WEBHOOK_AUTH_KEY = process.env.NEXT_PUBLIC_N8N_WEBHOOK_AUTH_KEY || process.env.N8N_WEBHOOK_AUTH_KEY;
+
+      if (!N8N_SUMMARY_WEBHOOK_URL || !N8N_WEBHOOK_AUTH_KEY) {
+        console.error("N8N summary webhook URL or auth key not configured. Cannot generate summary.");
+        alert("Summary generation is not configured. Please contact support.");
+        return;
+      }
+
       const response = await fetch(
-        "https://webhook-processor-production-6889.up.railway.app/webhook/a23f9a53-56d5-44c0-8c44-10cce1e5d066",
+        N8N_SUMMARY_WEBHOOK_URL,
         {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
+            "X-N8N-Auth": N8N_WEBHOOK_AUTH_KEY, // Header Auth
           },
           body: JSON.stringify({
             pdfName: pdf.name,
