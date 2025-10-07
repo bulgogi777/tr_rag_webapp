@@ -135,43 +135,82 @@ const PdfList = forwardRef<PdfListRef>((_, ref) => {
       if (!N8N_SUMMARY_WEBHOOK_URL || !N8N_WEBHOOK_AUTH_KEY) {
         console.error("N8N summary webhook URL or auth key not configured. Cannot generate summary.");
         alert("Summary generation is not configured. Please contact support.");
-        return;
-      }
-
-      const response = await fetch(
-        N8N_SUMMARY_WEBHOOK_URL,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            "X-N8N-Auth": N8N_WEBHOOK_AUTH_KEY, // Header Auth
-          },
-          body: JSON.stringify({
-            pdfName: pdf.name,
-            objectPath: pdf.fullPath,
-          }),
-        },
-      )
-
-      if (!response.ok) {
-        throw new Error(`Failed to generate summary: ${response.statusText}`)
-      }
-
-      const responseBody = await response.json()
-      console.log("Summary generation response:", responseBody)
-      
-      if (responseBody.Error === "Summary already exists") {
-        console.log("Summary already exists, forcing list refresh")
         setGeneratingIds((prev) => {
           const next = new Set(prev)
           next.delete(pdf.name)
           return next
         })
-        await refreshData()
-        return
+        return;
       }
-      
-      await refreshData()
+
+      // Fire-and-forget: Trigger the webhook but don't wait for response
+      fetch(N8N_SUMMARY_WEBHOOK_URL, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "X-N8N-Auth": N8N_WEBHOOK_AUTH_KEY,
+        },
+        body: JSON.stringify({
+          pdfName: pdf.name,
+          objectPath: pdf.fullPath,
+        }),
+      }).catch((error) => {
+        console.error("Error triggering summary generation:", error);
+      });
+
+      console.log(`Started summary generation for ${pdf.name}, beginning polling...`);
+
+      // Poll for summary completion
+      const maxPollingTime = 5 * 60 * 1000; // 5 minutes
+      const pollingInterval = 15 * 1000; // 15 seconds
+      const startTime = Date.now();
+
+      const pollForSummary = async (): Promise<boolean> => {
+        try {
+          // Fetch updated PDF list
+          const response = await fetch("/api/s3/list-pdfs?" + new Date().getTime(), {
+            headers: {
+              'Cache-Control': 'no-cache, no-store, must-revalidate',
+              'Pragma': 'no-cache',
+              'Expires': '0'
+            }
+          });
+
+          if (!response.ok) {
+            console.error("Failed to fetch PDF list during polling");
+            return false;
+          }
+
+          const { pdfs: fetchedPdfs } = await response.json();
+          const updatedPdf = fetchedPdfs.find((p: PdfFile) => p.name === pdf.name);
+
+          if (updatedPdf?.hasSummary) {
+            console.log(`Summary ready for ${pdf.name}`);
+            // Update the local state with the new list
+            const filteredPdfs = filterPdfs(fetchedPdfs, filterType);
+            const sortedPdfs = sortPdfs(filteredPdfs, sortField, sortOrder);
+            setPdfs(sortedPdfs);
+            return true; // Summary is ready
+          }
+
+          // Check if we've exceeded max polling time
+          if (Date.now() - startTime >= maxPollingTime) {
+            console.log(`Polling timeout for ${pdf.name}`);
+            alert(`Summary generation is taking longer than expected for "${pdf.name}". Please check back in a few minutes or refresh the page.`);
+            return true; // Stop polling
+          }
+
+          // Continue polling
+          await new Promise(resolve => setTimeout(resolve, pollingInterval));
+          return pollForSummary();
+        } catch (error) {
+          console.error("Error during polling:", error);
+          return false;
+        }
+      };
+
+      await pollForSummary();
+
     } catch (error: any) {
       console.error("Error generating summary:", error)
       alert(error.message || "Failed to generate summary. Please try again.")
