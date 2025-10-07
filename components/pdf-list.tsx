@@ -129,7 +129,7 @@ const PdfList = forwardRef<PdfListRef>((_, ref) => {
   const generateSummary = async (pdf: PdfFile) => {
     setGeneratingIds((prev) => new Set(prev).add(pdf.name))
     try {
-      const N8N_SUMMARY_WEBHOOK_URL = "https://webhook-processor-production-6889.up.railway.app/webhook/a23f9a53-56d5-44c0-8c44-10cce1e5d066";
+      const N8N_SUMMARY_WEBHOOK_URL = process.env.NEXT_PUBLIC_N8N_SUMMARY_WEBHOOK_URL || process.env.N8N_SUMMARY_WEBHOOK_URL;
       const N8N_WEBHOOK_AUTH_KEY = process.env.NEXT_PUBLIC_N8N_WEBHOOK_AUTH_KEY || process.env.N8N_WEBHOOK_AUTH_KEY;
 
       if (!N8N_SUMMARY_WEBHOOK_URL || !N8N_WEBHOOK_AUTH_KEY) {

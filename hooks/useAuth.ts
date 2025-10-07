@@ -4,7 +4,7 @@ import { useEffect, useState, useRef, useCallback } from "react"
 import { type User, signInWithEmailAndPassword, signOut } from "firebase/auth"
 import { auth } from "@/lib/firebase"
 
-const N8N_SPIN_UP_WEBHOOK_URL = "https://webhook-processor-production-6889.up.railway.app/webhook/30bddc9d-8801-4217-a854-d36cf355301d"
+const N8N_SPIN_UP_WEBHOOK_URL = process.env.NEXT_PUBLIC_N8N_SPIN_UP_WEBHOOK_URL || process.env.N8N_SPIN_UP_WEBHOOK_URL;
 const N8N_WEBHOOK_AUTH_KEY = process.env.NEXT_PUBLIC_N8N_WEBHOOK_AUTH_KEY || process.env.N8N_WEBHOOK_AUTH_KEY;
 
 // Module-scoped flag to track if the webhook has been sent for the current session
