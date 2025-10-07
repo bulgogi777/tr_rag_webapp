@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server"
-import { revalidatePath } from "next/cache"
 import { s3, BUCKET_NAME, listObjects } from "@/lib/s3"
+
+// Force dynamic rendering for this route
+export const dynamic = 'force-dynamic'
 
 export async function GET() {
   try {
@@ -82,9 +84,6 @@ export async function GET() {
 
     const validPdfs = pdfs.filter((item): item is NonNullable<typeof item> => item !== null)
 
-    // Revalidate the dashboard page
-    revalidatePath('/dashboard')
-    
     const response = NextResponse.json({ pdfs: validPdfs })
     
     // Add cache control headers
